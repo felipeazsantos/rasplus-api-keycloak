@@ -50,7 +50,7 @@ class AuthenticationControllerTest {
         LoginDto dto = new LoginDto("usuario@usuario.com","pass");
         TokenDto tokenDto = new TokenDto(TOKEN, "Bearer");
 
-        when(authenticationService.auth(dto)).thenReturn(tokenDto);
+        when(authenticationService.auth(dto)).thenReturn("");
 
         mockMvc.perform(post("/auth")
                         .contentType(MediaType.APPLICATION_JSON_VALUE)

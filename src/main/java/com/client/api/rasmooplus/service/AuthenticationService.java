@@ -5,6 +5,6 @@ import com.client.api.rasmooplus.dto.TokenDto;
 
 public interface AuthenticationService {
 
-    TokenDto auth(LoginDto dto);
+    String auth(LoginDto dto);
 
 }
