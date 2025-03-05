@@ -7,4 +7,6 @@ public interface AuthenticationService {
 
     String auth(LoginDto dto);
 
+    String refreshToken(String refreshToken);
+
 }
