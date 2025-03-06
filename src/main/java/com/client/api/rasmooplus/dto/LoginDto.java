@@ -9,10 +9,19 @@ import lombok.*;
 @NoArgsConstructor
 public class LoginDto {
 
-    @NotBlank(message = "atributo obrigatório")
     private String username;
 
-    @NotBlank(message = "atributo obrigatório")
     private String password;
+
+    @NotBlank(message = "atributo obrigatório")
+    private String clientId;
+
+    @NotBlank(message = "atributo obrigatório")
+    private String clientSecret;
+
+    @NotBlank(message = "atributo obrigatório")
+    private String grantType;
+
+    private String refreshToken;
 
 }
