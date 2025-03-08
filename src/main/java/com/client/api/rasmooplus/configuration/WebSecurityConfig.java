@@ -38,7 +38,11 @@ public class WebSecurityConfig {
 
     private static final String[] ADMIN_ROLE = {"ADMIN_READ", "ADMIN_WRITE"};
     private static final String[] CLIENT_ROLE = {"CLIENT_READ_WRITE"};
-    private static final String[] SUBSCRYPTION_TYPE_ROLES = Stream.of(CLIENT_ROLE, ADMIN_ROLE)
+    private static final String[] USER_ROLE = {"USER_READ", "USER_WRITE"};
+    private static final String[] CLIENT_ADMIN_ROLES = Stream.of(CLIENT_ROLE, ADMIN_ROLE)
+            .flatMap(Arrays::stream)
+            .toArray(String[]::new);
+    private static final String[] USER_ADMIN_ROLES = Stream.of(USER_ROLE, ADMIN_ROLE)
             .flatMap(Arrays::stream)
             .toArray(String[]::new);
 
@@ -50,8 +54,12 @@ public class WebSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http.authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(AUTH_SWAGGER_LIST).permitAll();
-                    authorize.requestMatchers("/auth**").permitAll();
-                    authorize.requestMatchers(HttpMethod.GET, "/subscription-type").hasAnyAuthority(SUBSCRYPTION_TYPE_ROLES);
+                    authorize.requestMatchers(HttpMethod.POST, "/auth").permitAll();
+                    authorize.requestMatchers("/auth/**").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/subscription-type").hasAnyAuthority(CLIENT_ADMIN_ROLES);
+                    authorize.requestMatchers(HttpMethod.POST, "/payment/process").hasAnyAuthority(CLIENT_ADMIN_ROLES);
+                    authorize.requestMatchers(HttpMethod.POST, "/user").hasAnyAuthority(CLIENT_ADMIN_ROLES);
+                    authorize.requestMatchers("/user/**").hasAnyAuthority(USER_ADMIN_ROLES);
                     authorize.anyRequest().hasAnyAuthority(ADMIN_ROLE);
                 })
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())))
