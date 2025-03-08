@@ -50,7 +50,7 @@ public class WebSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http.authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(AUTH_SWAGGER_LIST).permitAll();
-                    authorize.requestMatchers(HttpMethod.POST, "/auth").permitAll();
+                    authorize.requestMatchers("/auth**").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/subscription-type").hasAnyAuthority(SUBSCRYPTION_TYPE_ROLES);
                     authorize.anyRequest().hasAnyAuthority(ADMIN_ROLE);
                 })
