@@ -1,7 +1,9 @@
 package com.client.api.rasmooplus.controller;
 
 import com.client.api.rasmooplus.dto.UserDto;
+import com.client.api.rasmooplus.dto.oauth.UserRepresentationDto;
 import com.client.api.rasmooplus.model.jpa.User;
+import com.client.api.rasmooplus.service.UserDetailsService;
 import com.client.api.rasmooplus.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,10 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
     @PostMapping
     @PreAuthorize(value = "hasAnyAuthority('CLIENT_READ_WRITE', 'ADMIN_READ', 'ADMIN_WRITE')")
     public ResponseEntity<User> create(@Valid @RequestBody UserDto dto) {
@@ -33,10 +39,16 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).body(userService.uploadPhoto(id, file));
     }
 
-
     @GetMapping(value = "/{id}/photo", produces = {MediaType.IMAGE_PNG_VALUE, MediaType.IMAGE_JPEG_VALUE})
     @PreAuthorize(value = "hasAnyAuthority('USER_READ', 'USER_WRITE', 'ADMIN_READ', 'ADMIN_WRITE')")
     public ResponseEntity<byte[]> downloadPhoto(@PathVariable("id") Long id) {
         return ResponseEntity.status(HttpStatus.OK).body(userService.downloadPhoto(id));
+    }
+
+    @PostMapping
+    @PreAuthorize(value = "hasAnyAuthority('ADMIN_READ', 'ADMIN_WRITE')")
+    public ResponseEntity<Void> createAuthUser(@Valid @RequestBody UserRepresentationDto dto) {
+        userDetailsService.createAuthUser(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }
