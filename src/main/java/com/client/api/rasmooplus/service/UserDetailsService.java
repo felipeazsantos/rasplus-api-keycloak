@@ -2,6 +2,7 @@ package com.client.api.rasmooplus.service;
 
 import com.client.api.rasmooplus.dto.UserDetailsDto;
 import com.client.api.rasmooplus.dto.oauth.UserRepresentationDto;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 public interface UserDetailsService {
 
@@ -12,4 +13,6 @@ public interface UserDetailsService {
     void updatePasswordByRecoveryCode(UserDetailsDto userDetailsDto);
 
     void createAuthUser(UserRepresentationDto userRepresentationDto);
+
+    void updateAuthUser(UserRepresentationDto userRepresentationDto, String email);
 }

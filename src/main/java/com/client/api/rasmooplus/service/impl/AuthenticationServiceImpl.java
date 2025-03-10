@@ -41,7 +41,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(keycloakOAuth, httpComponent.httpHeaders());
             ResponseEntity<String> response = httpComponent.restTemplate().postForEntity(
-                    keycloakUri + "/protocol/openid-connect/token", request, String.class
+                    keycloakUri + "/realms/REALM_RASPLUS_API/protocol/openid-connect/token", request, String.class
             );
             return response.getBody();
         } catch (Exception e) {

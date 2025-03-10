@@ -23,7 +23,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-
     @Autowired
     private UserDetailsService userDetailsService;
 
@@ -45,10 +44,17 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).body(userService.downloadPhoto(id));
     }
 
-    @PostMapping
+    @PostMapping("/credentials")
     @PreAuthorize(value = "hasAnyAuthority('ADMIN_READ', 'ADMIN_WRITE')")
     public ResponseEntity<Void> createAuthUser(@Valid @RequestBody UserRepresentationDto dto) {
         userDetailsService.createAuthUser(dto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PutMapping("/credentials/{email}")
+    @PreAuthorize(value = "hasAnyAuthority('USER_READ', 'USER_WRITE', 'ADMIN_READ', 'ADMIN_WRITE')")
+    public ResponseEntity<Void> updateAuthUser(@Valid @RequestBody UserRepresentationDto dto, @PathVariable("email") String email) {
+        userDetailsService.updateAuthUser(dto, email);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 }
