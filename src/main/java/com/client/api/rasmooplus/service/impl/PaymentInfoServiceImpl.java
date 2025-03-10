@@ -1,6 +1,8 @@
 package com.client.api.rasmooplus.service.impl;
 
 import com.client.api.rasmooplus.dto.PaymentProcessDto;
+import com.client.api.rasmooplus.dto.oauth.CredentialRepresentationDto;
+import com.client.api.rasmooplus.dto.oauth.UserRepresentationDto;
 import com.client.api.rasmooplus.dto.wsraspay.CustomerDto;
 import com.client.api.rasmooplus.dto.wsraspay.OrderDto;
 import com.client.api.rasmooplus.dto.wsraspay.PaymentDto;
@@ -21,8 +23,11 @@ import com.client.api.rasmooplus.repositoy.jpa.UserPaymentInfoRepository;
 import com.client.api.rasmooplus.repositoy.jpa.UserRepository;
 import com.client.api.rasmooplus.repositoy.jpa.UserTypeRepository;
 import com.client.api.rasmooplus.service.PaymentInfoService;
+import com.client.api.rasmooplus.service.UserDetailsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 import java.util.Objects;
 
@@ -38,16 +43,18 @@ public class PaymentInfoServiceImpl implements PaymentInfoService {
     private final MailIntegration mailIntegration;
     private final UserTypeRepository userTypeRepository;
     private final SubscriptionTypeRepository subscriptionTypeRepository;
+    private final UserDetailsService userDetailsService;
 
     PaymentInfoServiceImpl(UserRepository userRepository, UserPaymentInfoRepository userPaymentInfoRepository,
                            WsRaspayIntegration wsRaspayIntegration, MailIntegration mailIntegration, UserTypeRepository userTypeRepository,
-                           SubscriptionTypeRepository subscriptionTypeRepository) {
+                           SubscriptionTypeRepository subscriptionTypeRepository, UserDetailsService userDetailsService) {
         this.userRepository = userRepository;
         this.userPaymentInfoRepository = userPaymentInfoRepository;
         this.wsRaspayIntegration = wsRaspayIntegration;
         this.mailIntegration = mailIntegration;
         this.userTypeRepository = userTypeRepository;
         this.subscriptionTypeRepository = subscriptionTypeRepository;
+        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -61,7 +68,7 @@ public class PaymentInfoServiceImpl implements PaymentInfoService {
             throw new BusinessException("Pagamento não pode ser processado pois usuário já possui assinatura");
         }
 
-        Boolean successPayment = getSucessPayment(dto, user);
+        Boolean successPayment = getSuccessPayment(dto, user);
 
         return createUserCredentials(dto, user, successPayment);
     }
@@ -76,8 +83,6 @@ public class PaymentInfoServiceImpl implements PaymentInfoService {
             if (userTypeOpt.isEmpty()) {
                 throw new NotFoudException("UserType não encontrado");
             }
-//            UserCredentials userCredentials = new UserCredentials(null, user.getEmail(), PasswordUtils.encode(defaultPass), userTypeOpt.get());
-//            userDetailsRepository.save(userCredentials);
 
             var subscriptionTypeOpt = subscriptionTypeRepository.findByProductKey(dto.getProductKey());
 
@@ -86,17 +91,34 @@ public class PaymentInfoServiceImpl implements PaymentInfoService {
             }
             user.setSubscriptionType(subscriptionTypeOpt.get());
             userRepository.save(user);
-
+            userDetailsService.createAuthUser(getUserRepresentationDto(user));
             mailIntegration.send(user.getEmail(), "Usuario: " + user.getEmail() + " - Senha: " + defaultPass, "Acesso liberado");
             return true;
         }
         return false;
     }
 
-    private Boolean getSucessPayment(PaymentProcessDto dto, User user) {
+    private Boolean getSuccessPayment(PaymentProcessDto dto, User user) {
         CustomerDto customerDto = wsRaspayIntegration.createCustomer(CustomerMapper.build(user));
         OrderDto orderDto = wsRaspayIntegration.createOrder(OrderMapper.build(customerDto.getId(), dto));
         PaymentDto paymentDto = PaymentMapper.build(customerDto.getId(), orderDto.getId(), CreditCardMapper.build(dto.getUserPaymentInfoDto(), user.getCpf()));
         return wsRaspayIntegration.processPayment(paymentDto);
+    }
+
+    private UserRepresentationDto getUserRepresentationDto(User user) {
+        CredentialRepresentationDto credentialRepresentationDto = CredentialRepresentationDto.builder()
+                .temporary(false)
+                .type("password")
+                .value(defaultPass)
+                .build();
+
+        return UserRepresentationDto.builder()
+                .username(user.getEmail())
+                .email(user.getEmail())
+                .firstName(user.getName())
+                .enabled(true)
+                .groups(List.of("users"))
+                .credentials(List.of(credentialRepresentationDto))
+                .build();
     }
 }

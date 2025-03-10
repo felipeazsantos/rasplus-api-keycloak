@@ -3,6 +3,7 @@ package com.client.api.rasmooplus.service.impl;
 import com.client.api.rasmooplus.component.HttpComponent;
 import com.client.api.rasmooplus.dto.LoginDto;
 import com.client.api.rasmooplus.dto.UserDetailsDto;
+import com.client.api.rasmooplus.dto.oauth.CredentialRepresentationDto;
 import com.client.api.rasmooplus.dto.oauth.UserRepresentationDto;
 import com.client.api.rasmooplus.exception.BadRequestException;
 import com.client.api.rasmooplus.exception.NotFoudException;
@@ -26,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
@@ -61,30 +63,30 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private HttpComponent httpComponent;
 
     @Override
-    public void sendRecoveryCode(String email) {
+    public void sendRecoveryCode(String email){
 
-//        UserRecoveryCode userRecoveryCode;
-//        String code = String.format("%04d", new Random().nextInt(10000));
-//        var userRecoveryCodeOpt = userRecoveryCodeRepository.findByEmail(email);
-//
-//        if (userRecoveryCodeOpt.isEmpty()) {
-//
-//            var user = userDetailsRepository.findByUsername(email);
-//            if (user.isEmpty()) {
-//                throw new NotFoudException("Usuário não encontrado");
-//            }
-//
-//            userRecoveryCode = new UserRecoveryCode();
-//            userRecoveryCode.setEmail(email);
-//
-//        } else {
-//            userRecoveryCode = userRecoveryCodeOpt.get();
-//        }
-//        userRecoveryCode.setCode(code);
-//        userRecoveryCode.setCreationDate(LocalDateTime.now());
-//
-//        userRecoveryCodeRepository.save(userRecoveryCode);
-//        mailIntegration.send(email, "Código de recuperação de conta: "+code, "Código de recuperação de conta");
+        UserRecoveryCode userRecoveryCode;
+        String code = String.format("%04d", new Random().nextInt(10000));
+        var userRecoveryCodeOpt = userRecoveryCodeRepository.findByEmail(email);
+
+        if (userRecoveryCodeOpt.isEmpty()) {
+            try {
+                getUserAuthId(email, getHttpHeaders());
+            } catch (BadRequestException | JsonProcessingException ex) {
+                throw new NotFoudException("User auth credentials not found");
+            }
+
+            userRecoveryCode = new UserRecoveryCode();
+            userRecoveryCode.setEmail(email);
+
+        } else {
+            userRecoveryCode = userRecoveryCodeOpt.get();
+        }
+        userRecoveryCode.setCode(code);
+        userRecoveryCode.setCreationDate(LocalDateTime.now());
+
+        userRecoveryCodeRepository.save(userRecoveryCode);
+        mailIntegration.send(email, "Código de recuperação de conta: "+code, "Código de recuperação de conta");
     }
 
     @Override
@@ -106,16 +108,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public void updatePasswordByRecoveryCode(UserDetailsDto userDetailsDto) {
-
-//        if (recoveryCodeIsValid(userDetailsDto.getRecoveryCode(), userDetailsDto.getEmail())) {
-//            var userDetails = userDetailsRepository.findByUsername(userDetailsDto.getEmail());
-//
-//            UserCredentials userCredentials = userDetails.get();
-//
-//            userCredentials.setPassword(PasswordUtils.encode(userDetailsDto.getPassword()));
-//
-//            userDetailsRepository.save(userCredentials);
-//        }
+        if (recoveryCodeIsValid(userDetailsDto.getRecoveryCode(), userDetailsDto.getEmail())) {
+            var userRepresentationDto = getUserRepresentationDtoUpdated(userDetailsDto.getPassword());
+            updateAuthUser(userRepresentationDto, userRepresentationDto.getEmail());
+        }
     }
 
     @Override
@@ -184,6 +180,19 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
         httpHeaders.setBearerAuth(accessToken);
         return httpHeaders;
+    }
+
+    private UserRepresentationDto getUserRepresentationDtoUpdated(String newPassword) {
+        CredentialRepresentationDto credentialRepresentationDto = CredentialRepresentationDto.builder()
+                .temporary(false)
+                .value(newPassword)
+                .type("password")
+                .build();
+
+        return UserRepresentationDto.builder()
+                .enabled(true)
+                .credentials(List.of(credentialRepresentationDto))
+                .build();
     }
 
 }
